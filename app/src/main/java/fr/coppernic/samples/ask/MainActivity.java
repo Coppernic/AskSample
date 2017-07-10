@@ -1,0 +1,337 @@
+package fr.coppernic.samples.ask;
+
+import android.os.Bundle;
+import android.support.design.widget.Snackbar;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
+import android.view.View;
+import android.widget.Button;
+import android.widget.CompoundButton;
+import android.widget.RadioGroup;
+import android.widget.Switch;
+import android.widget.TextView;
+
+import fr.coppernic.sdk.ask.Defines;
+import fr.coppernic.sdk.ask.Reader;
+import fr.coppernic.sdk.ask.ReaderListener;
+import fr.coppernic.sdk.ask.RfidTag;
+import fr.coppernic.sdk.ask.SearchParameters;
+import fr.coppernic.sdk.ask.sCARD_SearchExt;
+import fr.coppernic.sdk.powermgmt.PowerUtilsNotifier;
+import fr.coppernic.sdk.utils.core.CpcBytes;
+import fr.coppernic.sdk.utils.core.CpcDefinitions;
+import fr.coppernic.sdk.utils.core.CpcResult;
+import fr.coppernic.sdk.utils.io.InstanceListener;
+
+public class MainActivity extends AppCompatActivity implements PowerUtilsNotifier, InstanceListener<Reader> {
+
+    // Power Management
+    private Power power;
+    // RFID reader
+    private Reader reader;
+    // UI
+    private Switch swOpen;
+    private Button btnFwVersion;
+    private Switch swCardDetection;
+    private TextView tvCommunicationModeValue;
+    private TextView tvAtrValue;
+    private Button btnGetSamAtr;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
+        // Power management
+        power = new Power (this, this);
+
+        Switch swPower = (Switch)findViewById(R.id.swPower);
+        swPower.setOnCheckedChangeListener(onSwPowerCheckedChanged);
+
+        swOpen = (Switch)findViewById(R.id.swOpen);
+        swOpen.setOnCheckedChangeListener(onSwOpenCheckedChanged);
+
+        btnFwVersion = (Button)findViewById(R.id.btnFwVersion);
+        btnFwVersion.setOnClickListener(onBtnFwVersionClicked);
+
+        swCardDetection = (Switch)findViewById(R.id.swCardDetection);
+        swCardDetection.setOnClickListener(onSwCardDetectionClicked);
+
+        tvCommunicationModeValue = (TextView)findViewById(R.id.tvCommunicationModeValue);
+        tvAtrValue = (TextView)findViewById(R.id.tvAtrValue);
+
+        btnGetSamAtr = (Button)findViewById(R.id.btnSamGetAtr);
+        btnGetSamAtr.setOnClickListener(onBtnGetSamAtrClicked);
+    }
+
+    // PowerUtilNotifier implementation
+
+    @Override
+    public void onPowerUp(CpcResult.RESULT result, int i, int i1) {
+        if (i == CpcDefinitions.VID_COPPERNIC && i1 == CpcDefinitions.PID_RFID_ASK) {
+            // reader instantiation
+            Reader.getInstance(this, this);
+        }
+    }
+
+    @Override
+    public void onPowerDown(CpcResult.RESULT result, int i, int i1) {
+        if (i == CpcDefinitions.VID_COPPERNIC && i1 == CpcDefinitions.PID_RFID_ASK) {
+            enableUiAfterReaderInstantiation(false);
+        }
+    }
+
+    // End of PowerUtilNotifier implementation
+
+    // InstanceListener implementation
+
+    @Override
+    public void onCreated(Reader reader) {
+        this.reader = reader;
+        enableUiAfterReaderInstantiation(true);
+    }
+
+    @Override
+    public void onDisposed(Reader reader) {
+
+    }
+
+    // End of InstanceListener implementation
+
+    private CompoundButton.OnCheckedChangeListener onSwPowerCheckedChanged = new CompoundButton.OnCheckedChangeListener() {
+        @Override
+        public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+            power.rfid(isChecked);
+        }
+    };
+
+    private CompoundButton.OnCheckedChangeListener onSwOpenCheckedChanged = new CompoundButton.OnCheckedChangeListener() {
+        @Override
+        public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+            if (isChecked) {
+                // Opens communication port
+                int res = reader.cscOpen(CpcDefinitions.ASK_READER_PORT, 115200, false);
+
+                if (res == Defines.RCSC_Ok) {
+                    enableUiAfterOpen(true);
+                } else {
+                    Snackbar.make(buttonView, "Error opening reader", Snackbar.LENGTH_SHORT).show();
+                }
+            } else {
+                // CLoses communication port
+                reader.cscClose();
+                enableUiAfterOpen(false);
+            }
+        }
+    };
+
+    private View.OnClickListener onBtnFwVersionClicked = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            // Gets firmware version of the reader
+            // And initialize it for communication
+            StringBuilder sb = new StringBuilder();
+            int res = reader.cscVersionCsc(sb);
+            if (res == Defines.RCSC_Ok) {
+                Snackbar.make(v, sb.toString(), Snackbar.LENGTH_SHORT).show();
+                enableUiAfterFullInit(true);
+            }
+        }
+    };
+
+    private View.OnClickListener onSwCardDetectionClicked = new View.OnClickListener() {
+        @Override
+        public void onClick(final View v) {
+            if (swCardDetection.isChecked()) {
+                // Clears Tag data
+                showTag(null);
+                // Sets the card detection
+                sCARD_SearchExt search = new sCARD_SearchExt();
+                search.OTH = 1;
+                search.CONT = 1;
+                search.INNO = 1;
+                search.ISOA = 1;
+                search.ISOB = 1;
+                search.MIFARE = 1;
+                search.MONO = 1;
+                search.MV4k = 1;
+                search.MV5k = 1;
+                search.TICK = 1;
+                int mask = Defines.SEARCH_MASK_INNO | Defines.SEARCH_MASK_ISOA | Defines.SEARCH_MASK_ISOB | Defines.SEARCH_MASK_MIFARE | Defines.SEARCH_MASK_MONO | Defines.SEARCH_MASK_MV4K | Defines.SEARCH_MASK_MV5K | Defines.SEARCH_MASK_TICK | Defines.SEARCH_MASK_CONT | Defines.SEARCH_MASK_OTH;
+                SearchParameters parameters = new SearchParameters(search, mask, (byte) 0x01, (byte) 0x00);
+                // Starts card detection
+                reader.startDiscovery(parameters, new ReaderListener() {
+                    @Override
+                    public void onTagDiscovered(RfidTag rfidTag) {
+                        // Displays Tag data
+                        showTag(rfidTag);
+                    }
+
+                    @Override
+                    public void onDiscoveryStopped() {
+                        Snackbar.make(v, R.string.card_detection_stopped, Snackbar.LENGTH_SHORT).show();
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                swCardDetection.setChecked(false);
+                            }
+                        });
+                    }
+                });
+
+                Snackbar.make(v, R.string.card_detection_started, Snackbar.LENGTH_SHORT).show();
+            } else {
+                // Stops card detection
+                reader.stopDiscovery();
+            }
+        }
+    };
+
+    private View.OnClickListener onBtnGetSamAtrClicked = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            // Clears ATR
+            showSamAtr(null, 0);
+            // Gets SAM to be resetted
+            byte sam = getSam();
+            // Gets select protocol
+            byte protocol = getProtocol();
+            // Selects SAM
+            int res = reader.cscSelectSam(sam, protocol);
+            if (res != Defines.RCSC_Ok) {
+                // Shows error
+                Snackbar.make(v, R.string.error_selecting_sam, Snackbar.LENGTH_SHORT).show();
+                return;
+            }
+            // Resets SAM
+            byte[] atr = new byte[256];
+            int[] atrLength = new int[1];
+            res = reader.cscResetSam((byte) 0x00, atr, atrLength);
+            if (res != Defines.RCSC_Ok) {
+                // Shows error
+                Snackbar.make(v, R.string.error_resetting_sam, Snackbar.LENGTH_SHORT).show();
+                return;
+            }
+            // Displays ATR
+            showSamAtr(atr, atrLength[0]);
+        }
+    };
+
+    /**
+     * Displays tag data
+     * @param tag Tag to be displayed
+     */
+    private void showTag(final RfidTag tag) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (tag != null) {
+                    tvCommunicationModeValue.setText(tag.getCommunicationMode().toString());
+                    tvAtrValue.setText(CpcBytes.byteArrayToString(tag.getAtr()));
+                } else {
+                    tvCommunicationModeValue.setText("");
+                    tvAtrValue.setText("");
+                }
+            }
+        });
+    }
+
+    /**
+     * Enables/disables UI after power state of RFID reader has been changed.
+     * @param enable true: enables, false: disables
+     */
+    private void enableUiAfterReaderInstantiation(final boolean enable) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                swOpen.setEnabled(enable);
+
+                if (!enable) {
+                    swOpen.setChecked(false);
+                    btnFwVersion.setEnabled(false);
+                }
+            }
+        });
+    }
+
+    /**
+     * Enables/disables UI after the reader has been opened/closed
+     * @param enable true: enables, false: disables
+     */
+    private void enableUiAfterOpen(final boolean enable) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                btnFwVersion.setEnabled(enable);
+
+                if (!enable) {
+                    if (swCardDetection.isChecked()) {
+                        reader.stopDiscovery();
+                        swCardDetection.setChecked(false);
+                    }
+                    swCardDetection.setEnabled(false);
+                    btnGetSamAtr.setEnabled(false);
+                }
+            }
+        });
+    }
+
+    /**
+     * Enables/disables UI after the reader has been fully initialized (after firmware version has been retrieved)
+     * @param enable true: enables, false: disables
+     */
+    private void enableUiAfterFullInit (final boolean enable) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                swCardDetection.setEnabled(enable);
+                btnGetSamAtr.setEnabled(enable);
+            }
+        });
+    }
+
+    /**
+     * Returns SAM selected by user
+     * @return SAM number (1 for SAM 1, 2 for SAM 2
+     */
+    private byte getSam() {
+        RadioGroup rgSam = (RadioGroup)findViewById(R.id.rgSam);
+        if (rgSam.getCheckedRadioButtonId() == R.id.rbSam1) {
+            return 0x01;
+        } else {
+            return 0x02;
+        }
+    }
+
+    /**
+     * Returns protocol selected by user
+     * @return Protocol
+     */
+    private byte getProtocol() {
+        RadioGroup rgProtocol = (RadioGroup)findViewById(R.id.rgProtocol);
+        if (rgProtocol.getCheckedRadioButtonId() == R.id.rbIso7816T0) {
+            return Defines.SAM_PROT_ISO_7816_T0;
+        } else if (rgProtocol.getCheckedRadioButtonId() == R.id.rbIso7816T1) {
+            return Defines.SAM_PROT_ISO_7816_T1;
+        } else {
+            return Defines.SAM_PROT_HSP_INNOVATRON;
+        }
+    }
+
+    /**
+     * Displays SAM ATR
+     * @param atr ATR
+     * @param length ATR length
+     */
+    private void showSamAtr(byte[] atr, int length) {
+        TextView tvSamAtrValue = (TextView)findViewById(R.id.tvSamAtrValue);
+
+        if (atr == null) {
+            tvSamAtrValue.setText("");
+        } else {
+            tvSamAtrValue.setText(CpcBytes.byteArrayToString(atr, length));
+        }
+    }
+}

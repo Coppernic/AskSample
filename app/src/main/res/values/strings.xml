@@ -1,0 +1,23 @@
+<resources>
+    <string name="app_name">ASK Sample</string>
+    <string name="action_settings">Settings</string>
+    <string name="basics">Basics</string>
+    <string name="power">Power</string>
+    <string name="open">Open</string>
+    <string name="fw_version">FW Version</string>
+    <string name="card_detection">Card detection</string>
+    <string name="discovery">Discovery</string>
+    <string name="communication_mode">Communication Mode:</string>
+    <string name="atr">ATR:</string>
+    <string name="card_detection_started">Card detection started</string>
+    <string name="card_detection_stopped">Card detection stopped</string>
+    <string name="sam">SAM</string>
+    <string name="sam_1">SAM 1</string>
+    <string name="sam_2">SAM 2</string>
+    <string name="get_atr">Get ATR</string>
+    <string name="iso_7816_t0">ISO 7816 T=0</string>
+    <string name="iso_7816_t1">ISO 7816 T=1</string>
+    <string name="hsp_innovatron">HSP Innovatron</string>
+    <string name="error_selecting_sam">Error selecting SAM</string>
+    <string name="error_resetting_sam">Error resetting SAM</string>
+</resources>
