@@ -107,6 +107,15 @@ CpcDefinitions is part of Coppernic Utility Library, you can add it to your buil
 ```groovy
 compile 'fr.coppernic.sdk.cpcutils:CpcUtilsLib:6.7.0'
 ```
+
+### Initialize reader
+
+Once the open has been performed, a reset is needed to insure that the reader has been completeley initialized:
+
+```groovy
+reader.cscResetCsc();
+```
+
 ### Get firmware version to initialize reader for communication
 
 ```groovy

@@ -115,9 +115,17 @@ public class MainActivity extends AppCompatActivity implements PowerUtilsNotifie
                 int res = reader.cscOpen(CpcDefinitions.ASK_READER_PORT, 115200, false);
 
                 if (res == Defines.RCSC_Ok) {
-                    enableUiAfterOpen(true);
+
+                    res = reader.cscResetCsc();
                 } else {
                     Snackbar.make(buttonView, "Error opening reader", Snackbar.LENGTH_SHORT).show();
+                    return;
+                }
+
+                if (res == Defines.RCSC_Ok) {
+                    enableUiAfterOpen(true);
+                } else {
+                    Snackbar.make(buttonView, "Error resetting reader", Snackbar.LENGTH_SHORT).show();
                 }
             } else {
                 // CLoses communication port
