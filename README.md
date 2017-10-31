@@ -19,6 +19,10 @@ allprojects {
     }
 }
 ```
+Documentation
+-------------
+
+The javadoc for CpcAsk can be found [here](https://github.com/Coppernic/coppernic.github.io/blob/master/assets/CpcAsk-3.0.0-javadoc.jar)
 
 The basics
 ----------
