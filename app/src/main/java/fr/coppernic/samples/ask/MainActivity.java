@@ -17,16 +17,17 @@ import fr.coppernic.sdk.ask.ReaderListener;
 import fr.coppernic.sdk.ask.RfidTag;
 import fr.coppernic.sdk.ask.SearchParameters;
 import fr.coppernic.sdk.ask.sCARD_SearchExt;
+import fr.coppernic.sdk.power.PowerManager;
+import fr.coppernic.sdk.power.api.PowerListener;
+import fr.coppernic.sdk.power.api.peripheral.Peripheral;
+import fr.coppernic.sdk.power.impl.cone.ConePeripheral;
 import fr.coppernic.sdk.powermgmt.PowerUtilsNotifier;
 import fr.coppernic.sdk.utils.core.CpcBytes;
 import fr.coppernic.sdk.utils.core.CpcDefinitions;
 import fr.coppernic.sdk.utils.core.CpcResult;
 import fr.coppernic.sdk.utils.io.InstanceListener;
 
-public class MainActivity extends AppCompatActivity implements PowerUtilsNotifier, InstanceListener<Reader> {
-
-    // Power Management
-    private Power power;
+public class MainActivity extends AppCompatActivity implements PowerListener, InstanceListener<Reader> {
     // RFID reader
     private Reader reader;
     // UI
@@ -43,9 +44,6 @@ public class MainActivity extends AppCompatActivity implements PowerUtilsNotifie
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-
-        // Power management
-        power = new Power (this, this);
 
         Switch swPower = (Switch)findViewById(R.id.swPower);
         swPower.setOnCheckedChangeListener(onSwPowerCheckedChanged);
@@ -64,26 +62,8 @@ public class MainActivity extends AppCompatActivity implements PowerUtilsNotifie
 
         btnGetSamAtr = (Button)findViewById(R.id.btnSamGetAtr);
         btnGetSamAtr.setOnClickListener(onBtnGetSamAtrClicked);
+        PowerManager.get().registerListener(this);
     }
-
-    // PowerUtilNotifier implementation
-
-    @Override
-    public void onPowerUp(CpcResult.RESULT result, int i, int i1) {
-        if (i == CpcDefinitions.VID_COPPERNIC && i1 == CpcDefinitions.PID_RFID_ASK) {
-            // reader instantiation
-            Reader.getInstance(this, this);
-        }
-    }
-
-    @Override
-    public void onPowerDown(CpcResult.RESULT result, int i, int i1) {
-        if (i == CpcDefinitions.VID_COPPERNIC && i1 == CpcDefinitions.PID_RFID_ASK) {
-            enableUiAfterReaderInstantiation(false);
-        }
-    }
-
-    // End of PowerUtilNotifier implementation
 
     // InstanceListener implementation
 
@@ -103,7 +83,11 @@ public class MainActivity extends AppCompatActivity implements PowerUtilsNotifie
     private CompoundButton.OnCheckedChangeListener onSwPowerCheckedChanged = new CompoundButton.OnCheckedChangeListener() {
         @Override
         public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-            power.rfid(isChecked);
+            if (isChecked) {
+                ConePeripheral.RFID_ASK_UCM108_GPIO.on(MainActivity.this);
+            } else {
+                ConePeripheral.RFID_ASK_UCM108_GPIO.off(MainActivity.this);
+            }
         }
     };
 
@@ -341,5 +325,16 @@ public class MainActivity extends AppCompatActivity implements PowerUtilsNotifie
         } else {
             tvSamAtrValue.setText(CpcBytes.byteArrayToString(atr, length));
         }
+    }
+
+    @Override
+    public void onPowerUp(CpcResult.RESULT result, Peripheral peripheral) {
+        // reader instantiation
+        Reader.getInstance(this, this);
+    }
+
+    @Override
+    public void onPowerDown(CpcResult.RESULT result, Peripheral peripheral) {
+        enableUiAfterReaderInstantiation(false);
     }
 }
