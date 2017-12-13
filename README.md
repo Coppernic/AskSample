@@ -34,36 +34,53 @@ CpcCore is the library responsible for power management.
 In your build.gradle file, at module level, add the following lines:
 
 ```groovy
-compile 'fr.coppernic.sdk.core:CpcCore:1.0.0'
+compile 'fr.coppernic.sdk.core:CpcCore:1.3.0'
 ```
 #### Power on/off RFID reader
 
-First, create a Power management object:
+First, implement PowerNotifier:
 
 ``` groovy
-private PowerMgmt powerMgmt;
+public class MainActivity extends AppCompatActivity implements PowerListener
+
+...
+
+@Override
+public void onPowerUp(CpcResult.RESULT result, Peripheral peripheral) {
+	// reader instantiation
+	Reader.getInstance(this, this);
+}
+
+@Override
+public void onPowerDown(CpcResult.RESULT result, Peripheral peripheral) {
+	enableUiAfterReaderInstantiation(false);
+}
+
 ```
-Then instantiate it:
+Then register it in Power API, in onCreate for example:
 
 ```groovy
-powerMgmt = PowerMgmtFactory.get().setContext(context)
-                .setNotifier(notifier)
-                .setPeripheralTypes(PeripheralTypesCone.RfidSc)
-                .setManufacturers(ManufacturersCone.Ask)
-                .setModels(ModelsCone.Ucm108)
-                .setInterfaces(InterfacesCone.ExpansionPort)
-                .build();
+
+PowerManager.get().registerListener(this);
+
 ```
-Finally, use the powerOn/powerOff methods:
+Use the on/off methods:
 
 ```groovy
 public void rfid (boolean on) {
     if (on) {
-        powerMgmt.powerOn();
-    } else {
-        powerMgmt.powerOff();
-    }
+		ConePeripheral.RFID_ASK_UCM108_GPIO.on(MainActivity.this);
+	} else {
+		ConePeripheral.RFID_ASK_UCM108_GPIO.off(MainActivity.this);
+	}
 }
+```
+
+Finally, release it:
+
+```groovy
+PowerManager.get().unregisterAll();
+PowerManager.get().releaseResources();
 ```
 
 ### Reader initialization
@@ -109,7 +126,7 @@ reader.cscOpen(CpcDefinitions.ASK_READER_PORT, 115200, false);
 CpcDefinitions is part of Coppernic Utility Library, you can add it to your build.gradle:
 
 ```groovy
-compile 'fr.coppernic.sdk.cpcutils:CpcUtilsLib:6.7.0'
+compile 'fr.coppernic.sdk.cpcutils:CpcUtilsLib:6.13.0'
 ```
 
 ### Initialize reader
