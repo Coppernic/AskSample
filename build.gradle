@@ -3,6 +3,7 @@
 buildscript {
     repositories {
         jcenter()
+        google()
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:3.0.0'
@@ -17,6 +18,7 @@ allprojects {
         jcenter()
         maven { url 'https://artifactory.coppernic.fr/artifcatory/plugins-release'}
         maven { url 'https://artifactory.coppernic.fr/artifactory/libs-release'}
+        google()
     }
 }
 
