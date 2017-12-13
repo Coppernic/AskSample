@@ -60,6 +60,14 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
         PowerManager.get().registerListener(this);
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // Releases PowerManager
+        PowerManager.get().unregisterAll();
+        PowerManager.get().releaseResources();
+    }
+
     // InstanceListener implementation
 
     @Override
