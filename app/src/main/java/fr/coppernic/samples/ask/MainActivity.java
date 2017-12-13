@@ -158,7 +158,7 @@ public class MainActivity extends AppCompatActivity implements PowerUtilsNotifie
                 // Sets the card detection
                 sCARD_SearchExt search = new sCARD_SearchExt();
                 search.OTH = 1;
-                search.CONT = 1;
+                search.CONT = 0;
                 search.INNO = 1;
                 search.ISOA = 1;
                 search.ISOB = 1;
@@ -167,7 +167,7 @@ public class MainActivity extends AppCompatActivity implements PowerUtilsNotifie
                 search.MV4k = 1;
                 search.MV5k = 1;
                 search.TICK = 1;
-                int mask = Defines.SEARCH_MASK_INNO | Defines.SEARCH_MASK_ISOA | Defines.SEARCH_MASK_ISOB | Defines.SEARCH_MASK_MIFARE | Defines.SEARCH_MASK_MONO | Defines.SEARCH_MASK_MV4K | Defines.SEARCH_MASK_MV5K | Defines.SEARCH_MASK_TICK | Defines.SEARCH_MASK_CONT | Defines.SEARCH_MASK_OTH;
+                int mask = Defines.SEARCH_MASK_INNO | Defines.SEARCH_MASK_ISOA | Defines.SEARCH_MASK_ISOB | Defines.SEARCH_MASK_MIFARE | Defines.SEARCH_MASK_MONO | Defines.SEARCH_MASK_MV4K | Defines.SEARCH_MASK_MV5K | Defines.SEARCH_MASK_TICK | Defines.SEARCH_MASK_OTH;
                 SearchParameters parameters = new SearchParameters(search, mask, (byte) 0x01, (byte) 0x00);
                 // Starts card detection
                 reader.startDiscovery(parameters, new ReaderListener() {
