@@ -22,7 +22,7 @@ allprojects {
 Documentation
 -------------
 
-The javadoc for CpcAsk can be found [here](https://github.com/Coppernic/coppernic.github.io/raw/master/assets/CpcAsk-3.0.0-javadoc.jar).
+The javadoc for CpcAsk can be found [here](https://github.com/Coppernic/coppernic.github.io/raw/master/assets/CpcAsk-3.1.0-javadoc.jar).
 
 The basics
 ----------
@@ -34,7 +34,7 @@ CpcCore is the library responsible for power management.
 In your build.gradle file, at module level, add the following lines:
 
 ```groovy
-compile 'fr.coppernic.sdk.core:CpcCore:1.3.0'
+compile 'fr.coppernic.sdk.core:CpcCore:1.6.2'
 ```
 #### Power on/off RFID reader
 
@@ -88,7 +88,7 @@ PowerManager.get().releaseResources();
 CpcAsk manages the ASK UCM108 RFID reader:
 
 ```groovy
-compile 'fr.coppernic.sdk.ask:CpcAsk:3.0.0'
+compile 'fr.coppernic.sdk.ask:CpcAsk:3.1.0'
 ```
 
 #### Create reader object
@@ -126,15 +126,7 @@ reader.cscOpen(CpcDefinitions.ASK_READER_PORT, 115200, false);
 CpcDefinitions is part of Coppernic Utility Library, you can add it to your build.gradle:
 
 ```groovy
-compile 'fr.coppernic.sdk.cpcutils:CpcUtilsLib:6.13.0'
-```
-
-### Initialize reader
-
-Once the open has been performed, a reset is needed to insure that the reader has been completeley initialized:
-
-```groovy
-reader.cscResetCsc();
+compile 'fr.coppernic.sdk.cpcutils:CpcUtilsLib:6.17.1'
 ```
 
 ### Get firmware version to initialize reader for communication
