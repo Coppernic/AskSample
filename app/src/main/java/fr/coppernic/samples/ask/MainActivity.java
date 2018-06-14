@@ -3,6 +3,7 @@ package fr.coppernic.samples.ask;
 import android.os.Bundle;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.SwitchCompat;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.widget.Button;
@@ -36,11 +37,11 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
     private Reader reader;
     // UI
     @BindView(R.id.swOpen)
-    Switch swOpen;
+    SwitchCompat swOpen;
     @BindView(R.id.btnFwVersion)
     Button btnFwVersion;
     @BindView(R.id.swCardDetection)
-    Switch swCardDetection;
+    SwitchCompat swCardDetection;
     @BindView(R.id.tvCommunicationMode)
     TextView tvCommunicationModeValue;
     @BindView(R.id.tvAtrValue)
