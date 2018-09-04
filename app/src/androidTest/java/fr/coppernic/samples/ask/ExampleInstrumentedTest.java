@@ -22,5 +22,7 @@ public class ExampleInstrumentedTest {
         Context appContext = InstrumentationRegistry.getTargetContext();
 
         assertEquals("fr.coppernic.samples.ask", appContext.getPackageName());
+
+        new D2xxTest();
     }
 }
