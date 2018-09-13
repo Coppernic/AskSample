@@ -3,6 +3,18 @@ plugins {
 }
 
 apply plugin: 'com.android.application'
+apply plugin: 'fr.coppernic.extensions'
+
+copper {
+    projectName = "AskSample"
+
+    publications {
+        genSourcesForVariant = {false}
+        artiConfig = project.hasProperty('artiServer')?project.artiServer:"artifactory"
+    }
+}
+
+apply plugin: 'fr.coppernic.android'
 
 android {
     compileSdkVersion 28
@@ -11,8 +23,8 @@ android {
         applicationId "fr.coppernic.samples.ask"
         minSdkVersion 17
         targetSdkVersion 28
-        versionCode 1
-        versionName "1.0"
+        versionCode versioning.info.versionCode
+        versionName versioning.info.display
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
