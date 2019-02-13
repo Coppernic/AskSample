@@ -88,7 +88,7 @@ PowerManager.get().releaseResources();
 CpcAsk manages the ASK UCM108 RFID reader:
 
 ```groovy
-compile 'fr.coppernic.sdk.ask:CpcAsk:3.1.0'
+implementation 'fr.coppernic.sdk.ask:CpcAsk:3.2.3'
 ```
 
 #### Create reader object
