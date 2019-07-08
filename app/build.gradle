@@ -16,6 +16,12 @@ copper {
 
 apply plugin: 'fr.coppernic.android'
 
+repositories {
+    maven { url 'http://arti-01:8081/artifactory/libs-release' }
+    mavenLocal()
+    google()
+}
+
 android {
     compileSdkVersion 28
 
@@ -45,8 +51,8 @@ dependencies {
     implementation 'com.android.support:design:28.0.0'
     implementation 'com.android.support:support-media-compat:28.0.0'
     implementation 'com.android.support:support-v4:28.0.0'
-    implementation 'fr.coppernic.sdk.ask:CpcAsk:3.2.3'
-    implementation 'fr.coppernic.sdk.core:CpcCore:1.8.4'
+    implementation 'fr.coppernic.sdk.ask:CpcAsk:ClementFix'
+    implementation 'fr.coppernic.sdk.core:CpcCore:1.8.10'
     implementation'fr.coppernic.sdk.cpcutils:CpcUtilsLib:6.18.1'
     implementation 'com.android.support:cardview-v7:28.0.0'
     // Butter knife
