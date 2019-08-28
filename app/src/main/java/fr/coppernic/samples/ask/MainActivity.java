@@ -9,7 +9,6 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.RadioGroup;
-import android.widget.Switch;
 import android.widget.TextView;
 
 import butterknife.BindView;
@@ -26,11 +25,10 @@ import fr.coppernic.sdk.power.PowerManager;
 import fr.coppernic.sdk.power.api.PowerListener;
 import fr.coppernic.sdk.power.api.peripheral.Peripheral;
 import fr.coppernic.sdk.power.impl.cone.ConePeripheral;
-import fr.coppernic.sdk.powermgmt.PowerUtilsNotifier;
 import fr.coppernic.sdk.utils.core.CpcBytes;
-import fr.coppernic.sdk.utils.core.CpcDefinitions;
 import fr.coppernic.sdk.utils.core.CpcResult;
 import fr.coppernic.sdk.utils.io.InstanceListener;
+import timber.log.Timber;
 
 public class MainActivity extends AppCompatActivity implements PowerListener, InstanceListener<Reader> {
     // RFID reader
@@ -97,7 +95,7 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
     public void onSwOpenCheckedChanged(CompoundButton buttonView, boolean isChecked) {
         if (isChecked) {
             // Opens communication port
-            int res = reader.cscOpen(CpcDefinitions.ASK_READER_PORT, 115200, false);
+            int res = reader.cscOpen(fr.coppernic.sdk.core.Defines.SerialDefines.ASK_READER_PORT, 115200, false);
 
             if (res == Defines.RCSC_Ok) {
 
@@ -126,13 +124,14 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
         StringBuilder sb = new StringBuilder();
         int res = reader.cscVersionCsc(sb);
         if (res == Defines.RCSC_Ok) {
+            Timber.d("Version : \"%s\"", sb);
             Snackbar.make(v, sb.toString(), Snackbar.LENGTH_SHORT).show();
             enableUiAfterFullInit(true);
         }
     }
 
     @OnCheckedChanged(R.id.swCardDetection)
-    public void onSwCardDetctionCheckedChanged(final CompoundButton buttonView, boolean checked) {
+    public void onSwCardDetectionCheckedChanged(final CompoundButton buttonView, boolean checked) {
         if (checked) {
             // Clears Tag data
             showTag(null);
@@ -312,7 +311,7 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
      * @param length ATR length
      */
     private void showSamAtr(byte[] atr, int length) {
-        TextView tvSamAtrValue = (TextView)findViewById(R.id.tvSamAtrValue);
+        TextView tvSamAtrValue = findViewById(R.id.tvSamAtrValue);
 
         if (atr == null) {
             tvSamAtrValue.setText("");

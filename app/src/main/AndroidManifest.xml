@@ -1,14 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="fr.coppernic.samples.ask">
 
     <application
+        android:name=".App"
         android:allowBackup="true"
         android:icon="@drawable/rfid_blue"
         android:label="@string/app_name"
         android:roundIcon="@drawable/rfid_blue"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme">
+        android:theme="@style/AppTheme"
+        tools:ignore="GoogleAppIndexingWarning">
         <activity
             android:name=".MainActivity"
             android:label="@string/app_name"
