@@ -55,7 +55,7 @@ dependencies {
 
     // Coppernic
     implementation 'fr.coppernic.sdk.ask:CpcAsk:3.5.2'
-    implementation 'fr.coppernic.sdk.core:CpcCore:1.8.14'
+    implementation 'fr.coppernic.sdk.core:CpcCore:1.8.16'
     implementation'fr.coppernic.sdk.cpcutils:CpcUtilsLib:6.18.4'
 
     // Butter knife
