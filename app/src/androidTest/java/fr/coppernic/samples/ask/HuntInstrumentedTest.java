@@ -1,10 +1,6 @@
 package fr.coppernic.samples.ask;
 
-import android.app.PendingIntent;
-import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.SystemClock;
 import android.support.test.InstrumentationRegistry;
 import android.support.test.espresso.UiController;
@@ -39,7 +35,7 @@ import static org.junit.Assert.*;
 public class HuntInstrumentedTest {
 
     @Rule
-    public ActivityTestRule<MainActivity> activityRule = new ActivityTestRule<> (MainActivity.class);
+    public ActivityTestRule<OldActivity> activityRule = new ActivityTestRule<>(OldActivity.class);
 
     @Test
     public void useAppContext() throws Exception {

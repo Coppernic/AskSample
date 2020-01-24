@@ -31,9 +31,7 @@ import fr.coppernic.sdk.utils.core.CpcResult;
 import fr.coppernic.sdk.utils.io.InstanceListener;
 import timber.log.Timber;
 
-public class MainActivity extends AppCompatActivity implements PowerListener, InstanceListener<Reader> {
-    // RFID reader
-    private Reader reader;
+public class OldActivity extends AppCompatActivity implements PowerListener, InstanceListener<Reader> {
     // UI
     @BindView(R.id.swOpen)
     SwitchCompat swOpen;
@@ -47,6 +45,8 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
     TextView tvAtrValue;
     @BindView(R.id.btnSamGetAtr)
     Button btnGetSamAtr;
+    // RFID reader
+    private Reader reader;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,9 +86,9 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
     @OnCheckedChanged(R.id.swPower)
     public void onSwPowerCheckedChanged(CompoundButton buttonView, boolean isChecked) {
         if (isChecked) {
-            ConePeripheral.RFID_ASK_UCM108_GPIO.on(MainActivity.this);
+            ConePeripheral.RFID_ASK_UCM108_GPIO.on(OldActivity.this);
         } else {
-            ConePeripheral.RFID_ASK_UCM108_GPIO.off(MainActivity.this);
+            ConePeripheral.RFID_ASK_UCM108_GPIO.off(OldActivity.this);
         }
     }
 
@@ -148,7 +148,9 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
             search.MV4k = 1;
             search.MV5k = 1;
             search.TICK = 1;
-            int mask = Defines.SEARCH_MASK_INNO | Defines.SEARCH_MASK_ISOA | Defines.SEARCH_MASK_ISOB | Defines.SEARCH_MASK_MIFARE | Defines.SEARCH_MASK_MONO | Defines.SEARCH_MASK_MV4K | Defines.SEARCH_MASK_MV5K | Defines.SEARCH_MASK_TICK | Defines.SEARCH_MASK_OTH;
+            int mask = Defines.SEARCH_MASK_INNO | Defines.SEARCH_MASK_ISOA | Defines.SEARCH_MASK_ISOB |
+                       Defines.SEARCH_MASK_MIFARE | Defines.SEARCH_MASK_MONO | Defines.SEARCH_MASK_MV4K |
+                       Defines.SEARCH_MASK_MV5K | Defines.SEARCH_MASK_TICK | Defines.SEARCH_MASK_OTH;
             SearchParameters parameters = new SearchParameters(search, mask, (byte) 0x01, (byte) 0x00);
             // Starts card detection
             reader.startDiscovery(parameters, new ReaderListener() {
@@ -207,6 +209,7 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
 
     /**
      * Displays tag data
+     *
      * @param tag Tag to be displayed
      */
     private void showTag(final RfidTag tag) {
@@ -226,6 +229,7 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
 
     /**
      * Enables/disables UI after power state of RFID reader has been changed.
+     *
      * @param enable true: enables, false: disables
      */
     private void enableUiAfterReaderInstantiation(final boolean enable) {
@@ -244,6 +248,7 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
 
     /**
      * Enables/disables UI after the reader has been opened/closed
+     *
      * @param enable true: enables, false: disables
      */
     private void enableUiAfterOpen(final boolean enable) {
@@ -266,9 +271,10 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
 
     /**
      * Enables/disables UI after the reader has been fully initialized (after firmware version has been retrieved)
+     *
      * @param enable true: enables, false: disables
      */
-    private void enableUiAfterFullInit (final boolean enable) {
+    private void enableUiAfterFullInit(final boolean enable) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -280,6 +286,7 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
 
     /**
      * Returns SAM selected by user
+     *
      * @return SAM number (1 for SAM 1, 2 for SAM 2
      */
     private byte getSam() {
@@ -293,6 +300,7 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
 
     /**
      * Returns protocol selected by user
+     *
      * @return Protocol
      */
     private byte getProtocol() {
@@ -308,7 +316,8 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
 
     /**
      * Displays SAM ATR
-     * @param atr ATR
+     *
+     * @param atr    ATR
      * @param length ATR length
      */
     private void showSamAtr(byte[] atr, int length) {
