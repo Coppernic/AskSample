@@ -19,6 +19,7 @@ allprojects {
         maven { url 'https://artifactory.coppernic.fr/artifcatory/plugins-release'}
         maven { url 'https://artifactory.coppernic.fr/artifactory/libs-release'}
         google()
+        mavenLocal()
     }
 }
 
