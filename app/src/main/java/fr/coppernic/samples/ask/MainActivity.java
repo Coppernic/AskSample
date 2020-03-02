@@ -1,20 +1,27 @@
 package fr.coppernic.samples.ask;
 
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.support.design.widget.Snackbar;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.SwitchCompat;
-import android.support.v7.widget.Toolbar;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 
+import com.google.android.material.snackbar.Snackbar;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.SwitchCompat;
+import androidx.appcompat.widget.Toolbar;
+import androidx.preference.PreferenceManager;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnCheckedChanged;
 import butterknife.OnClick;
+import fr.coppernic.samples.ask.settings.SettingsActivity;
 import fr.coppernic.sdk.ask.Defines;
 import fr.coppernic.sdk.ask.Reader;
 import fr.coppernic.sdk.ask.ReaderListener;
@@ -30,6 +37,7 @@ import fr.coppernic.sdk.utils.core.CpcResult;
 import fr.coppernic.sdk.utils.io.InstanceListener;
 import timber.log.Timber;
 
+@SuppressWarnings("Convert2Lambda")
 public class MainActivity extends AppCompatActivity implements PowerListener, InstanceListener<Reader> {
     // RFID reader
     private Reader reader;
@@ -46,6 +54,8 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
     TextView tvAtrValue;
     @BindView(R.id.btnSamGetAtr)
     Button btnGetSamAtr;
+    //Settings
+    private SharedPreferences sharedPreferences;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,6 +65,8 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
         setSupportActionBar(toolbar);
 
         ButterKnife.bind(this);
+
+        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
 
         PowerManager.get().registerListener(this);
     }
@@ -68,6 +80,22 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
     }
 
     // InstanceListener implementation
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == R.id.action_settings) {
+            Intent intent = new Intent(this, SettingsActivity.class);
+            startActivity(intent);
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
 
     @Override
     public void onCreated(Reader reader) {
@@ -135,6 +163,7 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
         if (checked) {
             // Clears Tag data
             showTag(null);
+
             // Sets the card detection
             sCARD_SearchExt search = new sCARD_SearchExt();
             search.OTH = 1;
@@ -148,7 +177,8 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
             search.MV5k = 1;
             search.TICK = 1;
             int mask = Defines.SEARCH_MASK_INNO | Defines.SEARCH_MASK_ISOA | Defines.SEARCH_MASK_ISOB | Defines.SEARCH_MASK_MIFARE | Defines.SEARCH_MASK_MONO | Defines.SEARCH_MASK_MV4K | Defines.SEARCH_MASK_MV5K | Defines.SEARCH_MASK_TICK | Defines.SEARCH_MASK_OTH;
-            SearchParameters parameters = new SearchParameters(search, mask, (byte) 0x01, (byte) 0x00);
+            SearchParameters parameters =
+                new SearchParameters(search, mask, (byte) 0x01, getTimeout(), getRfOffTimeout());
             // Starts card detection
             reader.startDiscovery(parameters, new ReaderListener() {
                 @Override
@@ -329,5 +359,25 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
     @Override
     public void onPowerDown(CpcResult.RESULT result, Peripheral peripheral) {
         enableUiAfterReaderInstantiation(false);
+    }
+
+    private byte getTimeout() {
+
+        String s = sharedPreferences.getString(SettingsActivity.KEY_SEARCH_TIMEOUT, "200");
+        if (s == null) {
+            s = "200";
+        }
+
+        int i = Integer.parseInt(s);
+
+        return (byte) (i / 10);
+    }
+
+    private long getRfOffTimeout() {
+        String s = sharedPreferences.getString(SettingsActivity.KEY_RF_OFF_TIMEOUT, "0");
+        if (s == null) {
+            s = "0";
+        }
+        return Long.parseLong(s);
     }
 }

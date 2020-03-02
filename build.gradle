@@ -1,11 +1,12 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 buildscript {
     repositories {
-        maven { url 'https://artifactory.coppernic.fr/artifcatory/plugins-release'}
+        maven { url 'https://artifactory.coppernic.fr/artifactory/plugins-release'}
         maven { url 'https://artifactory.coppernic.fr/artifactory/libs-release'}
         maven { url "https://plugins.gradle.org/m2/" }
         jcenter()
         google()
+
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:3.2.0'
@@ -16,9 +17,10 @@ buildscript {
 allprojects {
     repositories {
         jcenter()
-        maven { url 'https://artifactory.coppernic.fr/artifcatory/plugins-release'}
+        maven { url 'https://artifactory.coppernic.fr/artifactory/plugins-release'}
         maven { url 'https://artifactory.coppernic.fr/artifactory/libs-release'}
         google()
+        mavenLocal()
     }
 }
 

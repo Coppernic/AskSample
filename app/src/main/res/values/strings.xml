@@ -20,4 +20,14 @@
     <string name="hsp_innovatron">HSP Innovatron</string>
     <string name="error_selecting_sam">Error selecting SAM</string>
     <string name="error_resetting_sam">Error resetting SAM</string>
+    <string name="title_activity_settings">Settings</string>
+
+    <!-- Preference Titles -->
+    <string name="discovery_header">Discovery</string>
+    <string name="sync_header">Sync</string>
+
+    <!-- Messages Preferences -->
+    <string name="title_search_timeout">Search timeout (ms)</string>
+    <string name="title_rf_off_timeout">Rf off timeout (ms)</string>
+
 </resources>
