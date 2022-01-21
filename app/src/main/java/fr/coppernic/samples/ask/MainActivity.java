@@ -11,10 +11,6 @@ import android.widget.CompoundButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 
-import butterknife.BindView;
-import butterknife.ButterKnife;
-import butterknife.OnCheckedChanged;
-import butterknife.OnClick;
 import fr.coppernic.sdk.ask.Defines;
 import fr.coppernic.sdk.ask.Reader;
 import fr.coppernic.sdk.ask.ReaderListener;
@@ -34,18 +30,13 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
     // RFID reader
     private Reader reader;
     // UI
-    @BindView(R.id.swOpen)
     SwitchCompat swOpen;
-    @BindView(R.id.btnFwVersion)
     Button btnFwVersion;
-    @BindView(R.id.swCardDetection)
     SwitchCompat swCardDetection;
-    @BindView(R.id.tvCommunicationMode)
     TextView tvCommunicationModeValue;
-    @BindView(R.id.tvAtrValue)
     TextView tvAtrValue;
-    @BindView(R.id.btnSamGetAtr)
     Button btnGetSamAtr;
+    SwitchCompat swPower;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,7 +45,49 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        ButterKnife.bind(this);
+        swOpen = findViewById(R.id.swOpen);
+        btnFwVersion= findViewById(R.id.btnFwVersion);
+        swCardDetection = findViewById(R.id.swCardDetection);
+        tvCommunicationModeValue = findViewById(R.id.tvCommunicationModeValue);
+        tvAtrValue = findViewById(R.id.tvAtrValue);
+        btnGetSamAtr = findViewById(R.id.btnSamGetAtr);
+        swPower = findViewById(R.id.swPower);
+
+        swOpen.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                onSwOpenCheckedChanged(compoundButton,b);
+            }
+        });
+
+        btnFwVersion.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                onBtnFwVersionClick(view);
+            }
+        });
+
+        swCardDetection.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                onSwCardDetectionCheckedChanged(compoundButton, b);
+            }
+        });
+
+        btnGetSamAtr.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                onBtnSamGetAtrClick(view);
+            }
+        });
+
+        swPower.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                onSwPowerCheckedChanged(compoundButton, b);
+            }
+        });
+
 
         PowerManager.get().registerListener(this);
     }
@@ -117,7 +150,6 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
         }
     }
 
-    @OnClick(R.id.btnFwVersion)
     public void onBtnFwVersionClick(View v) {
         // Gets firmware version of the reader
         // And initialize it for communication
@@ -130,7 +162,6 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
         }
     }
 
-    @OnCheckedChanged(R.id.swCardDetection)
     public void onSwCardDetectionCheckedChanged(final CompoundButton buttonView, boolean checked) {
         if (checked) {
             // Clears Tag data
@@ -176,7 +207,6 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
         }
     }
 
-    @OnClick(R.id.btnSamGetAtr)
     public void onBtnSamGetAtrClick(View v) {
         // Clears ATR
         showSamAtr(null, 0);

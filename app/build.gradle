@@ -58,13 +58,9 @@ dependencies {
     implementation 'fr.coppernic.sdk.core:CpcCore:1.9.0'
     implementation'fr.coppernic.sdk.cpcutils:CpcUtilsLib:6.19.0'
 
-    // Butter knife
-    implementation 'com.jakewharton:butterknife:8.8.1'
-    annotationProcessor 'com.jakewharton:butterknife-compiler:8.8.1'
-
     // Timber
     implementation 'com.jakewharton.timber:timber:4.7.1'
-    implementation 'fr.bipi.treessence:treessence:0.3.0'
+    implementation 'com.github.bastienpaulfr:Treessence:1.0.5'
 
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
