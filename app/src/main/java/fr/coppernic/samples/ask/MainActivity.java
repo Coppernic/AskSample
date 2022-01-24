@@ -114,8 +114,6 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
     }
 
     // End of InstanceListener implementation
-
-    @OnCheckedChanged(R.id.swPower)
     public void onSwPowerCheckedChanged(CompoundButton buttonView, boolean isChecked) {
         if (isChecked) {
             ConePeripheral.RFID_ASK_UCM108_GPIO.on(MainActivity.this);
@@ -124,7 +122,6 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
         }
     }
 
-    @OnCheckedChanged(R.id.swOpen)
     public void onSwOpenCheckedChanged(CompoundButton buttonView, boolean isChecked) {
         if (isChecked) {
             // Opens communication port

@@ -3,18 +3,9 @@ plugins {
 }
 
 apply plugin: 'com.android.application'
-apply plugin: 'fr.coppernic.extensions'
 
-copper {
-    projectName = "AskSample"
+apply from: rootProject.file('gradle/publish-app.gradle')
 
-    publications {
-        genSourcesForVariant = {false}
-        artiConfig = project.hasProperty('artiServer')?project.artiServer:"arti01"
-    }
-}
-
-apply plugin: 'fr.coppernic.android'
 
 android {
     compileSdkVersion 28
