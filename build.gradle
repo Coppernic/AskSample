@@ -1,21 +1,25 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 buildscript {
+    ext.dokka_version = "1.6.10"
+
     repositories {
-        maven { url 'https://artifactory.coppernic.fr/artifactory/libs-release'}
-        maven { url "https://plugins.gradle.org/m2/" }
-        jcenter()
+        gradlePluginPortal()
+        mavenCentral()
         google()
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:3.6.1'
-        classpath "gradle.plugin.coppernic:android-config:0.3.11"
+        classpath "org.jetbrains.dokka:dokka-gradle-plugin:$dokka_version"
+        classpath "nu.studer:gradle-credentials-plugin:2.1"
     }
 }
 
 allprojects {
     repositories {
-        jcenter()
-        maven { url 'https://artifactory.coppernic.fr/artifactory/libs-release'}
+        mavenCentral()
+        maven { url 'https://jitpack.io' }
+        maven { url "https://nexus.coppernic.fr/repository/libs-release" }
+        maven { url "https://nexus.coppernic.fr/plugins-release" }
         google()
     }
 }
