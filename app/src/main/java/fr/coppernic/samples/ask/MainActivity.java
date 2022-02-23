@@ -18,6 +18,7 @@ import fr.coppernic.sdk.ask.ReaderListener;
 import fr.coppernic.sdk.ask.RfidTag;
 import fr.coppernic.sdk.ask.SearchParameters;
 import fr.coppernic.sdk.ask.sCARD_SearchExt;
+import fr.coppernic.sdk.hdk.access.GpioPort;
 import fr.coppernic.sdk.power.PowerManager;
 import fr.coppernic.sdk.power.api.PowerListener;
 import fr.coppernic.sdk.power.api.peripheral.Peripheral;
@@ -25,6 +26,11 @@ import fr.coppernic.sdk.power.impl.cone.ConePeripheral;
 import fr.coppernic.sdk.utils.core.CpcBytes;
 import fr.coppernic.sdk.utils.core.CpcResult;
 import fr.coppernic.sdk.utils.io.InstanceListener;
+import fr.coppernic.sdk.utils.sound.Sound;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Consumer;
+import kotlin.Unit;
 import timber.log.Timber;
 
 public class MainActivity extends AppCompatActivity implements PowerListener, InstanceListener<Reader> {
@@ -38,6 +44,9 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
     TextView tvAtrValue;
     Button btnGetSamAtr;
     SwitchCompat swPower;
+
+    // GpioPort
+    GpioPort gpioPort;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -90,8 +99,32 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
         });
 
 
-        PowerManager.get().registerListener(this);
+        initPowerManagement();
     }
+
+    private void initPowerManagement() {
+
+        PowerManager.get().registerListener(this);
+
+        if (osHelperIsAccess) {
+            Disposable d = GpioPort.GpioManager.get()
+                .getGpioSingle(this)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Consumer<GpioPort>() {
+                    @Override
+                    public void accept(GpioPort g) throws Exception {
+                        gpioPort = g;
+                    }
+                }, onError);
+        }
+    }
+
+    private Consumer<Throwable> onError = new Consumer<Throwable>() {
+        @Override
+        public void accept(Throwable throwable) throws Exception {
+            Timber.e("Service not found");
+        }
+    };
 
     @Override
     protected void onDestroy() {
@@ -114,19 +147,54 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
 
     }
 
+    // TODO replace with OsHelper.isAccess()
+    private boolean osHelperIsAccess = true;
+
+
+    private Unit callback() {
+        //do something here
+
+        return Unit.INSTANCE;
+    }
+
     // End of InstanceListener implementation
     public void onSwPowerCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-        if (isChecked) {
-            ConePeripheral.RFID_ASK_UCM108_GPIO.on(MainActivity.this);
+            if (isChecked) {
+            if (osHelperIsAccess) {
+                // TODO use AccessPeripheral.RFID_ASK_UCM108_GPIO.on
+                gpioPort.setVccEn(true);
+                Reader.getInstance(this, this);
+            } else {
+                ConePeripheral.RFID_ASK_UCM108_GPIO.on(MainActivity.this);
+            }
+
         } else {
-            ConePeripheral.RFID_ASK_UCM108_GPIO.off(MainActivity.this);
+            if (osHelperIsAccess) {
+                // TODO use AccessPeripheral.RFID_ASK_UCM108_GPIO.off
+                gpioPort.setVccEn(false);
+                enableUiAfterReaderInstantiation(false);
+            } else {
+                ConePeripheral.RFID_ASK_UCM108_GPIO.off(MainActivity.this);
+            }
         }
+    }
+
+    private void beepFunction() {
+        Sound sound = new Sound(this);
+        sound.playOk(250, this::callback);
     }
 
     public void onSwOpenCheckedChanged(CompoundButton buttonView, boolean isChecked) {
         if (isChecked) {
             // Opens communication port
-            int res = reader.cscOpen(fr.coppernic.sdk.core.Defines.SerialDefines.ASK_READER_PORT, 115200, false);
+            int res = -1;
+
+            if (osHelperIsAccess) {
+                // TODO puts in SDK defines the path to ASK serial port
+                res = reader.cscOpen("/dev/ttyMSM1", 115200, false);
+            } else {
+                res = reader.cscOpen(fr.coppernic.sdk.core.Defines.SerialDefines.ASK_READER_PORT, 115200, false);
+            }
 
             if (res == Defines.RCSC_Ok) {
 
@@ -241,6 +309,7 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
             @Override
             public void run() {
                 if (tag != null) {
+                    beepFunction();
                     tvCommunicationModeValue.setText(tag.getCommunicationMode().toString());
                     tvAtrValue.setText(CpcBytes.byteArrayToString(tag.getAtr()));
                 } else {
