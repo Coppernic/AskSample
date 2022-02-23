@@ -228,44 +228,57 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
         }
     }
 
+    private void launchCardDiscovery(final CompoundButton buttonView) {
+
+
+        // Sets the card detection
+        sCARD_SearchExt search = new sCARD_SearchExt();
+        search.OTH = 1;
+        search.CONT = 0;
+        search.INNO = 1;
+        search.ISOA = 1;
+        search.ISOB = 1;
+        search.MIFARE = 1;
+        search.MONO = 1;
+        search.MV4k = 1;
+        search.MV5k = 1;
+        search.TICK = 1;
+        int mask = Defines.SEARCH_MASK_INNO | Defines.SEARCH_MASK_ISOA | Defines.SEARCH_MASK_ISOB | Defines.SEARCH_MASK_MIFARE | Defines.SEARCH_MASK_MONO | Defines.SEARCH_MASK_MV4K | Defines.SEARCH_MASK_MV5K | Defines.SEARCH_MASK_TICK | Defines.SEARCH_MASK_OTH;
+        SearchParameters parameters = new SearchParameters(search, mask, (byte) 0x01, (byte) 0x00);
+        // Starts card detection
+        reader.startDiscovery(parameters, new ReaderListener() {
+            @Override
+            public void onTagDiscovered(RfidTag rfidTag) {
+                // Displays Tag data
+                showTag(rfidTag);
+            }
+
+            @Override
+            public void onDiscoveryStopped() {
+                Snackbar.make(buttonView, R.string.card_detection_stopped, Snackbar.LENGTH_SHORT).show();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (swCardDetection.isChecked()) {
+                            // TODO : check if a delay should be inserted, also verify that application should
+                            //  implement a continuous discovery
+                            launchCardDiscovery(buttonView);
+                        }
+                    }
+                });
+            }
+        });
+
+
+    }
+
     public void onSwCardDetectionCheckedChanged(final CompoundButton buttonView, boolean checked) {
         if (checked) {
             // Clears Tag data
             showTag(null);
+
             // Sets the card detection
-            sCARD_SearchExt search = new sCARD_SearchExt();
-            search.OTH = 1;
-            search.CONT = 0;
-            search.INNO = 1;
-            search.ISOA = 1;
-            search.ISOB = 1;
-            search.MIFARE = 1;
-            search.MONO = 1;
-            search.MV4k = 1;
-            search.MV5k = 1;
-            search.TICK = 1;
-            int mask = Defines.SEARCH_MASK_INNO | Defines.SEARCH_MASK_ISOA | Defines.SEARCH_MASK_ISOB | Defines.SEARCH_MASK_MIFARE | Defines.SEARCH_MASK_MONO | Defines.SEARCH_MASK_MV4K | Defines.SEARCH_MASK_MV5K | Defines.SEARCH_MASK_TICK | Defines.SEARCH_MASK_OTH;
-            SearchParameters parameters = new SearchParameters(search, mask, (byte) 0x01, (byte) 0x00);
-            // Starts card detection
-            reader.startDiscovery(parameters, new ReaderListener() {
-                @Override
-                public void onTagDiscovered(RfidTag rfidTag) {
-                    // Displays Tag data
-                    showTag(rfidTag);
-                }
-
-                @Override
-                public void onDiscoveryStopped() {
-                    Snackbar.make(buttonView, R.string.card_detection_stopped, Snackbar.LENGTH_SHORT).show();
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            swCardDetection.setChecked(false);
-                        }
-                    });
-                }
-            });
-
+            launchCardDiscovery(buttonView);
             Snackbar.make(buttonView, R.string.card_detection_started, Snackbar.LENGTH_SHORT).show();
         } else {
             // Stops card detection
