@@ -148,12 +148,7 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
             // Opens communication port
             int res = -1;
 
-            if (OsHelper.isAccess()) {
-                // TODO puts in SDK defines the path to ASK serial port
-                res = reader.cscOpen("/dev/ttyMSM1", 115200, false);
-            } else {
-                res = reader.cscOpen(fr.coppernic.sdk.core.Defines.SerialDefines.ASK_READER_PORT, 115200, false);
-            }
+            res = reader.cscOpen(fr.coppernic.sdk.core.Defines.SerialDefines.ASK_READER_PORT, 115200, false);
 
             if (res == Defines.RCSC_Ok) {
 
@@ -188,8 +183,6 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
     }
 
     private void launchCardDiscovery(final CompoundButton buttonView) {
-
-
         // Sets the card detection
         sCARD_SearchExt search = new sCARD_SearchExt();
         search.OTH = 1;
