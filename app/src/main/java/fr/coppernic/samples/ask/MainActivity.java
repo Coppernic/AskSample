@@ -25,6 +25,7 @@ import fr.coppernic.sdk.power.api.peripheral.Peripheral;
 import fr.coppernic.sdk.power.impl.cone.ConePeripheral;
 import fr.coppernic.sdk.utils.core.CpcBytes;
 import fr.coppernic.sdk.utils.core.CpcResult;
+import fr.coppernic.sdk.utils.helpers.OsHelper;
 import fr.coppernic.sdk.utils.io.InstanceListener;
 import fr.coppernic.sdk.utils.sound.Sound;
 import io.reactivex.android.schedulers.AndroidSchedulers;
@@ -63,41 +64,16 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
         btnGetSamAtr = findViewById(R.id.btnSamGetAtr);
         swPower = findViewById(R.id.swPower);
 
-        swOpen.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                onSwOpenCheckedChanged(compoundButton,b);
-            }
-        });
+        swOpen.setOnCheckedChangeListener((compoundButton, b) -> onSwOpenCheckedChanged(compoundButton, b));
 
-        btnFwVersion.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                onBtnFwVersionClick(view);
-            }
-        });
+        btnFwVersion.setOnClickListener(view -> onBtnFwVersionClick(view));
 
-        swCardDetection.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                onSwCardDetectionCheckedChanged(compoundButton, b);
-            }
-        });
+        swCardDetection.setOnCheckedChangeListener(
+            (compoundButton, b) -> onSwCardDetectionCheckedChanged(compoundButton, b));
 
-        btnGetSamAtr.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                onBtnSamGetAtrClick(view);
-            }
-        });
+        btnGetSamAtr.setOnClickListener(view -> onBtnSamGetAtrClick(view));
 
-        swPower.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                onSwPowerCheckedChanged(compoundButton, b);
-            }
-        });
-
+        swPower.setOnCheckedChangeListener((compoundButton, b) -> onSwPowerCheckedChanged(compoundButton, b));
 
         initPowerManagement();
     }
@@ -106,25 +82,15 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
 
         PowerManager.get().registerListener(this);
 
-        if (osHelperIsAccess) {
+        if (OsHelper.isAccess()) {
             Disposable d = GpioPort.GpioManager.get()
                 .getGpioSingle(this)
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Consumer<GpioPort>() {
-                    @Override
-                    public void accept(GpioPort g) throws Exception {
-                        gpioPort = g;
-                    }
-                }, onError);
+                .subscribe(g -> gpioPort = g, onError);
         }
     }
 
-    private Consumer<Throwable> onError = new Consumer<Throwable>() {
-        @Override
-        public void accept(Throwable throwable) throws Exception {
-            Timber.e("Service not found");
-        }
-    };
+    private Consumer<Throwable> onError = throwable -> Timber.e("Service not found");
 
     @Override
     protected void onDestroy() {
@@ -147,10 +113,6 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
 
     }
 
-    // TODO replace with OsHelper.isAccess()
-    private boolean osHelperIsAccess = true;
-
-
     private Unit callback() {
         //do something here
 
@@ -160,7 +122,7 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
     // End of InstanceListener implementation
     public void onSwPowerCheckedChanged(CompoundButton buttonView, boolean isChecked) {
             if (isChecked) {
-            if (osHelperIsAccess) {
+            if (OsHelper.isAccess()) {
                 // TODO use AccessPeripheral.RFID_ASK_UCM108_GPIO.on
                 gpioPort.setVccEn(true);
                 Reader.getInstance(this, this);
@@ -169,7 +131,7 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
             }
 
         } else {
-            if (osHelperIsAccess) {
+            if (OsHelper.isAccess()) {
                 // TODO use AccessPeripheral.RFID_ASK_UCM108_GPIO.off
                 gpioPort.setVccEn(false);
                 enableUiAfterReaderInstantiation(false);
@@ -189,7 +151,7 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
             // Opens communication port
             int res = -1;
 
-            if (osHelperIsAccess) {
+            if (OsHelper.isAccess()) {
                 // TODO puts in SDK defines the path to ASK serial port
                 res = reader.cscOpen("/dev/ttyMSM1", 115200, false);
             } else {
