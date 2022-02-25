@@ -22,6 +22,7 @@ import fr.coppernic.sdk.hdk.access.GpioPort;
 import fr.coppernic.sdk.power.PowerManager;
 import fr.coppernic.sdk.power.api.PowerListener;
 import fr.coppernic.sdk.power.api.peripheral.Peripheral;
+import fr.coppernic.sdk.power.impl.access.AccessPeripheral;
 import fr.coppernic.sdk.power.impl.cone.ConePeripheral;
 import fr.coppernic.sdk.utils.core.CpcBytes;
 import fr.coppernic.sdk.utils.core.CpcResult;
@@ -123,18 +124,14 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
     public void onSwPowerCheckedChanged(CompoundButton buttonView, boolean isChecked) {
             if (isChecked) {
             if (OsHelper.isAccess()) {
-                // TODO use AccessPeripheral.RFID_ASK_UCM108_GPIO.on
-                gpioPort.setVccEn(true);
-                Reader.getInstance(this, this);
+                AccessPeripheral.RFID_ASK_UCM108_GPIO.on(MainActivity.this);
             } else {
                 ConePeripheral.RFID_ASK_UCM108_GPIO.on(MainActivity.this);
             }
 
         } else {
             if (OsHelper.isAccess()) {
-                // TODO use AccessPeripheral.RFID_ASK_UCM108_GPIO.off
-                gpioPort.setVccEn(false);
-                enableUiAfterReaderInstantiation(false);
+                AccessPeripheral.RFID_ASK_UCM108_GPIO.off(MainActivity.this);
             } else {
                 ConePeripheral.RFID_ASK_UCM108_GPIO.off(MainActivity.this);
             }
