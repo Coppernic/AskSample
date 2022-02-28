@@ -21,10 +21,14 @@ import fr.coppernic.sdk.ask.sCARD_SearchExt;
 import fr.coppernic.sdk.power.PowerManager;
 import fr.coppernic.sdk.power.api.PowerListener;
 import fr.coppernic.sdk.power.api.peripheral.Peripheral;
+import fr.coppernic.sdk.power.impl.access.AccessPeripheral;
 import fr.coppernic.sdk.power.impl.cone.ConePeripheral;
 import fr.coppernic.sdk.utils.core.CpcBytes;
 import fr.coppernic.sdk.utils.core.CpcResult;
+import fr.coppernic.sdk.utils.helpers.OsHelper;
 import fr.coppernic.sdk.utils.io.InstanceListener;
+import fr.coppernic.sdk.utils.sound.Sound;
+import kotlin.Unit;
 import timber.log.Timber;
 
 public class MainActivity extends AppCompatActivity implements PowerListener, InstanceListener<Reader> {
@@ -54,41 +58,21 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
         btnGetSamAtr = findViewById(R.id.btnSamGetAtr);
         swPower = findViewById(R.id.swPower);
 
-        swOpen.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                onSwOpenCheckedChanged(compoundButton,b);
-            }
-        });
+        swOpen.setOnCheckedChangeListener(this::onSwOpenCheckedChanged);
 
-        btnFwVersion.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                onBtnFwVersionClick(view);
-            }
-        });
+        btnFwVersion.setOnClickListener(this::onBtnFwVersionClick);
 
-        swCardDetection.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                onSwCardDetectionCheckedChanged(compoundButton, b);
-            }
-        });
+        swCardDetection.setOnCheckedChangeListener(
+            this::onSwCardDetectionCheckedChanged);
 
-        btnGetSamAtr.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                onBtnSamGetAtrClick(view);
-            }
-        });
+        btnGetSamAtr.setOnClickListener(this::onBtnSamGetAtrClick);
 
-        swPower.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                onSwPowerCheckedChanged(compoundButton, b);
-            }
-        });
+        swPower.setOnCheckedChangeListener(this::onSwPowerCheckedChanged);
 
+        initPowerManagement();
+    }
+
+    private void initPowerManagement() {
 
         PowerManager.get().registerListener(this);
     }
@@ -114,19 +98,41 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
 
     }
 
+    private Unit callback() {
+        //do something here
+
+        return Unit.INSTANCE;
+    }
+
     // End of InstanceListener implementation
     public void onSwPowerCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-        if (isChecked) {
-            ConePeripheral.RFID_ASK_UCM108_GPIO.on(MainActivity.this);
+            if (isChecked) {
+            if (OsHelper.isAccess()) {
+                AccessPeripheral.RFID_ASK_UCM108_GPIO.on(MainActivity.this);
+            } else {
+                ConePeripheral.RFID_ASK_UCM108_GPIO.on(MainActivity.this);
+            }
+
         } else {
-            ConePeripheral.RFID_ASK_UCM108_GPIO.off(MainActivity.this);
+            if (OsHelper.isAccess()) {
+                AccessPeripheral.RFID_ASK_UCM108_GPIO.off(MainActivity.this);
+            } else {
+                ConePeripheral.RFID_ASK_UCM108_GPIO.off(MainActivity.this);
+            }
         }
+    }
+
+    private void beepFunction() {
+        Sound sound = new Sound(this);
+        sound.playOk(250, this::callback);
     }
 
     public void onSwOpenCheckedChanged(CompoundButton buttonView, boolean isChecked) {
         if (isChecked) {
             // Opens communication port
-            int res = reader.cscOpen(fr.coppernic.sdk.core.Defines.SerialDefines.ASK_READER_PORT, 115200, false);
+            int res;
+
+            res = reader.cscOpen(fr.coppernic.sdk.core.Defines.SerialDefines.ASK_READER_PORT, 115200, false);
 
             if (res == Defines.RCSC_Ok) {
 
@@ -160,44 +166,52 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
         }
     }
 
+    private void launchCardDiscovery(final CompoundButton buttonView) {
+        // Sets the card detection
+        sCARD_SearchExt search = new sCARD_SearchExt();
+        search.OTH = 1;
+        search.CONT = 0;
+        search.INNO = 1;
+        search.ISOA = 1;
+        search.ISOB = 1;
+        search.MIFARE = 1;
+        search.MONO = 1;
+        search.MV4k = 1;
+        search.MV5k = 1;
+        search.TICK = 1;
+        int mask = Defines.SEARCH_MASK_INNO | Defines.SEARCH_MASK_ISOA | Defines.SEARCH_MASK_ISOB | Defines.SEARCH_MASK_MIFARE | Defines.SEARCH_MASK_MONO | Defines.SEARCH_MASK_MV4K | Defines.SEARCH_MASK_MV5K | Defines.SEARCH_MASK_TICK | Defines.SEARCH_MASK_OTH;
+        SearchParameters parameters = new SearchParameters(search, mask, (byte) 0x01, (byte) 0x00);
+        // Starts card detection
+        reader.startDiscovery(parameters, new ReaderListener() {
+            @Override
+            public void onTagDiscovered(RfidTag rfidTag) {
+                // Displays Tag data
+                showTag(rfidTag);
+            }
+
+            @Override
+            public void onDiscoveryStopped() {
+                Snackbar.make(buttonView, R.string.card_detection_stopped, Snackbar.LENGTH_SHORT).show();
+                runOnUiThread(() -> {
+                    if (swCardDetection.isChecked()) {
+                        // TODO : check if a delay should be inserted, also verify that application should
+                        //  implement a continuous discovery
+                        launchCardDiscovery(buttonView);
+                    }
+                });
+            }
+        });
+
+
+    }
+
     public void onSwCardDetectionCheckedChanged(final CompoundButton buttonView, boolean checked) {
         if (checked) {
             // Clears Tag data
             showTag(null);
+
             // Sets the card detection
-            sCARD_SearchExt search = new sCARD_SearchExt();
-            search.OTH = 1;
-            search.CONT = 0;
-            search.INNO = 1;
-            search.ISOA = 1;
-            search.ISOB = 1;
-            search.MIFARE = 1;
-            search.MONO = 1;
-            search.MV4k = 1;
-            search.MV5k = 1;
-            search.TICK = 1;
-            int mask = Defines.SEARCH_MASK_INNO | Defines.SEARCH_MASK_ISOA | Defines.SEARCH_MASK_ISOB | Defines.SEARCH_MASK_MIFARE | Defines.SEARCH_MASK_MONO | Defines.SEARCH_MASK_MV4K | Defines.SEARCH_MASK_MV5K | Defines.SEARCH_MASK_TICK | Defines.SEARCH_MASK_OTH;
-            SearchParameters parameters = new SearchParameters(search, mask, (byte) 0x01, (byte) 0x00);
-            // Starts card detection
-            reader.startDiscovery(parameters, new ReaderListener() {
-                @Override
-                public void onTagDiscovered(RfidTag rfidTag) {
-                    // Displays Tag data
-                    showTag(rfidTag);
-                }
-
-                @Override
-                public void onDiscoveryStopped() {
-                    Snackbar.make(buttonView, R.string.card_detection_stopped, Snackbar.LENGTH_SHORT).show();
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            swCardDetection.setChecked(false);
-                        }
-                    });
-                }
-            });
-
+            launchCardDiscovery(buttonView);
             Snackbar.make(buttonView, R.string.card_detection_started, Snackbar.LENGTH_SHORT).show();
         } else {
             // Stops card detection
@@ -237,16 +251,14 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
      * @param tag Tag to be displayed
      */
     private void showTag(final RfidTag tag) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                if (tag != null) {
-                    tvCommunicationModeValue.setText(tag.getCommunicationMode().toString());
-                    tvAtrValue.setText(CpcBytes.byteArrayToString(tag.getAtr()));
-                } else {
-                    tvCommunicationModeValue.setText("");
-                    tvAtrValue.setText("");
-                }
+        runOnUiThread(() -> {
+            if (tag != null) {
+                beepFunction();
+                tvCommunicationModeValue.setText(tag.getCommunicationMode().toString());
+                tvAtrValue.setText(CpcBytes.byteArrayToString(tag.getAtr()));
+            } else {
+                tvCommunicationModeValue.setText("");
+                tvAtrValue.setText("");
             }
         });
     }
@@ -256,15 +268,12 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
      * @param enable true: enables, false: disables
      */
     private void enableUiAfterReaderInstantiation(final boolean enable) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                swOpen.setEnabled(enable);
+        runOnUiThread(() -> {
+            swOpen.setEnabled(enable);
 
-                if (!enable) {
-                    swOpen.setChecked(false);
-                    btnFwVersion.setEnabled(false);
-                }
+            if (!enable) {
+                swOpen.setChecked(false);
+                btnFwVersion.setEnabled(false);
             }
         });
     }
@@ -274,19 +283,16 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
      * @param enable true: enables, false: disables
      */
     private void enableUiAfterOpen(final boolean enable) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                btnFwVersion.setEnabled(enable);
+        runOnUiThread(() -> {
+            btnFwVersion.setEnabled(enable);
 
-                if (!enable) {
-                    if (swCardDetection.isChecked()) {
-                        reader.stopDiscovery();
-                        swCardDetection.setChecked(false);
-                    }
-                    swCardDetection.setEnabled(false);
-                    btnGetSamAtr.setEnabled(false);
+            if (!enable) {
+                if (swCardDetection.isChecked()) {
+                    reader.stopDiscovery();
+                    swCardDetection.setChecked(false);
                 }
+                swCardDetection.setEnabled(false);
+                btnGetSamAtr.setEnabled(false);
             }
         });
     }
@@ -296,12 +302,9 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
      * @param enable true: enables, false: disables
      */
     private void enableUiAfterFullInit (final boolean enable) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                swCardDetection.setEnabled(enable);
-                btnGetSamAtr.setEnabled(enable);
-            }
+        runOnUiThread(() -> {
+            swCardDetection.setEnabled(enable);
+            btnGetSamAtr.setEnabled(enable);
         });
     }
 
