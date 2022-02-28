@@ -18,7 +18,6 @@ import fr.coppernic.sdk.ask.ReaderListener;
 import fr.coppernic.sdk.ask.RfidTag;
 import fr.coppernic.sdk.ask.SearchParameters;
 import fr.coppernic.sdk.ask.sCARD_SearchExt;
-import fr.coppernic.sdk.hdk.access.GpioPort;
 import fr.coppernic.sdk.power.PowerManager;
 import fr.coppernic.sdk.power.api.PowerListener;
 import fr.coppernic.sdk.power.api.peripheral.Peripheral;
@@ -29,9 +28,6 @@ import fr.coppernic.sdk.utils.core.CpcResult;
 import fr.coppernic.sdk.utils.helpers.OsHelper;
 import fr.coppernic.sdk.utils.io.InstanceListener;
 import fr.coppernic.sdk.utils.sound.Sound;
-import io.reactivex.android.schedulers.AndroidSchedulers;
-import io.reactivex.disposables.Disposable;
-import io.reactivex.functions.Consumer;
 import kotlin.Unit;
 import timber.log.Timber;
 
@@ -46,9 +42,6 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
     TextView tvAtrValue;
     Button btnGetSamAtr;
     SwitchCompat swPower;
-
-    // GpioPort
-    GpioPort gpioPort;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,16 +58,16 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
         btnGetSamAtr = findViewById(R.id.btnSamGetAtr);
         swPower = findViewById(R.id.swPower);
 
-        swOpen.setOnCheckedChangeListener((compoundButton, b) -> onSwOpenCheckedChanged(compoundButton, b));
+        swOpen.setOnCheckedChangeListener(this::onSwOpenCheckedChanged);
 
-        btnFwVersion.setOnClickListener(view -> onBtnFwVersionClick(view));
+        btnFwVersion.setOnClickListener(this::onBtnFwVersionClick);
 
         swCardDetection.setOnCheckedChangeListener(
-            (compoundButton, b) -> onSwCardDetectionCheckedChanged(compoundButton, b));
+            this::onSwCardDetectionCheckedChanged);
 
-        btnGetSamAtr.setOnClickListener(view -> onBtnSamGetAtrClick(view));
+        btnGetSamAtr.setOnClickListener(this::onBtnSamGetAtrClick);
 
-        swPower.setOnCheckedChangeListener((compoundButton, b) -> onSwPowerCheckedChanged(compoundButton, b));
+        swPower.setOnCheckedChangeListener(this::onSwPowerCheckedChanged);
 
         initPowerManagement();
     }
@@ -82,16 +75,7 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
     private void initPowerManagement() {
 
         PowerManager.get().registerListener(this);
-
-        if (OsHelper.isAccess()) {
-            Disposable d = GpioPort.GpioManager.get()
-                .getGpioSingle(this)
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(g -> gpioPort = g, onError);
-        }
     }
-
-    private Consumer<Throwable> onError = throwable -> Timber.e("Service not found");
 
     @Override
     protected void onDestroy() {
@@ -146,7 +130,7 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
     public void onSwOpenCheckedChanged(CompoundButton buttonView, boolean isChecked) {
         if (isChecked) {
             // Opens communication port
-            int res = -1;
+            int res;
 
             res = reader.cscOpen(fr.coppernic.sdk.core.Defines.SerialDefines.ASK_READER_PORT, 115200, false);
 
@@ -208,14 +192,11 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
             @Override
             public void onDiscoveryStopped() {
                 Snackbar.make(buttonView, R.string.card_detection_stopped, Snackbar.LENGTH_SHORT).show();
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (swCardDetection.isChecked()) {
-                            // TODO : check if a delay should be inserted, also verify that application should
-                            //  implement a continuous discovery
-                            launchCardDiscovery(buttonView);
-                        }
+                runOnUiThread(() -> {
+                    if (swCardDetection.isChecked()) {
+                        // TODO : check if a delay should be inserted, also verify that application should
+                        //  implement a continuous discovery
+                        launchCardDiscovery(buttonView);
                     }
                 });
             }
@@ -270,17 +251,14 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
      * @param tag Tag to be displayed
      */
     private void showTag(final RfidTag tag) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                if (tag != null) {
-                    beepFunction();
-                    tvCommunicationModeValue.setText(tag.getCommunicationMode().toString());
-                    tvAtrValue.setText(CpcBytes.byteArrayToString(tag.getAtr()));
-                } else {
-                    tvCommunicationModeValue.setText("");
-                    tvAtrValue.setText("");
-                }
+        runOnUiThread(() -> {
+            if (tag != null) {
+                beepFunction();
+                tvCommunicationModeValue.setText(tag.getCommunicationMode().toString());
+                tvAtrValue.setText(CpcBytes.byteArrayToString(tag.getAtr()));
+            } else {
+                tvCommunicationModeValue.setText("");
+                tvAtrValue.setText("");
             }
         });
     }
@@ -290,15 +268,12 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
      * @param enable true: enables, false: disables
      */
     private void enableUiAfterReaderInstantiation(final boolean enable) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                swOpen.setEnabled(enable);
+        runOnUiThread(() -> {
+            swOpen.setEnabled(enable);
 
-                if (!enable) {
-                    swOpen.setChecked(false);
-                    btnFwVersion.setEnabled(false);
-                }
+            if (!enable) {
+                swOpen.setChecked(false);
+                btnFwVersion.setEnabled(false);
             }
         });
     }
@@ -308,19 +283,16 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
      * @param enable true: enables, false: disables
      */
     private void enableUiAfterOpen(final boolean enable) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                btnFwVersion.setEnabled(enable);
+        runOnUiThread(() -> {
+            btnFwVersion.setEnabled(enable);
 
-                if (!enable) {
-                    if (swCardDetection.isChecked()) {
-                        reader.stopDiscovery();
-                        swCardDetection.setChecked(false);
-                    }
-                    swCardDetection.setEnabled(false);
-                    btnGetSamAtr.setEnabled(false);
+            if (!enable) {
+                if (swCardDetection.isChecked()) {
+                    reader.stopDiscovery();
+                    swCardDetection.setChecked(false);
                 }
+                swCardDetection.setEnabled(false);
+                btnGetSamAtr.setEnabled(false);
             }
         });
     }
@@ -330,12 +302,9 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
      * @param enable true: enables, false: disables
      */
     private void enableUiAfterFullInit (final boolean enable) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                swCardDetection.setEnabled(enable);
-                btnGetSamAtr.setEnabled(enable);
-            }
+        runOnUiThread(() -> {
+            swCardDetection.setEnabled(enable);
+            btnGetSamAtr.setEnabled(enable);
         });
     }
 
