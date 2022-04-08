@@ -352,6 +352,21 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
     }
 
     @Override
+    public void onPause() {
+
+        super.onPause();
+
+        if (swOpen.isChecked()) {
+            swOpen.setChecked(false);
+        }
+
+        if (swPower.isChecked()) {
+            swPower.setChecked(false);
+        }
+
+    }
+
+    @Override
     public void onPowerUp(CpcResult.RESULT result, Peripheral peripheral) {
         // reader instantiation
         Reader.getInstance(this, this);
