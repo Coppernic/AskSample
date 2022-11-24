@@ -30,6 +30,7 @@ import fr.coppernic.sdk.utils.io.InstanceListener;
 import fr.coppernic.sdk.utils.sound.Sound;
 import kotlin.Unit;
 import timber.log.Timber;
+import static fr.coppernic.sdk.core.Defines.SerialDefines.ASK_READER_PORT;
 
 public class MainActivity extends AppCompatActivity implements PowerListener, InstanceListener<Reader> {
     // RFID reader
@@ -132,7 +133,7 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
             // Opens communication port
             int res;
 
-            res = reader.cscOpen("/dev/ttyMSM1", 115200, false);
+            res = reader.cscOpen(ASK_READER_PORT, 115200, false);
 
             if (res == Defines.RCSC_Ok) {
                 res = reader.cscResetCsc();
