@@ -15,14 +15,14 @@ In the build.gradle, at project level, add the following lines:
 ```groovy
 allprojects {
     repositories {                
-        maven { url 'https://artifactory.coppernic.fr/artifactory/libs-release'}
+        maven { url "https://nexus.coppernic.fr/repository/libs-release" }
     }
 }
 ```
 Documentation
 -------------
 
-The javadoc for CpcAsk can be found [here](https://github.com/Coppernic/coppernic.github.io/raw/master/assets/CpcAsk-3.1.0-javadoc.jar).
+The javadoc for CpcAsk can be found [here](https://nexus.coppernic.fr/repository/libs-release-coppernic/fr/coppernic/sdk/ask/CpcAsk/4.0.2/CpcAsk-4.0.2-javadoc.jar).
 
 The basics
 ----------
@@ -34,7 +34,7 @@ CpcCore is the library responsible for power management.
 In your build.gradle file, at module level, add the following lines:
 
 ```groovy
-implementation 'fr.coppernic.sdk.core:CpcCore:1.8.6'
+implementation 'fr.coppernic.sdk.core:CpcCore:2.1.12'
 ```
 #### Power on/off RFID reader
 
@@ -67,12 +67,19 @@ PowerManager.get().registerListener(this);
 Use the on/off methods:
 
 ```groovy
-public void rfid (boolean on) {
-    if (on) {
-		ConePeripheral.RFID_ASK_UCM108_GPIO.on(MainActivity.this);
-	} else {
-		ConePeripheral.RFID_ASK_UCM108_GPIO.off(MainActivity.this);
-	}
+if (isChecked) {
+    if (OsHelper.isAccess()) {
+        AccessPeripheral.RFID_ASK_UCM108_GPIO.on(MainActivity.this);
+    } else {
+        ConePeripheral.RFID_ASK_UCM108_GPIO.on(MainActivity.this);
+    }
+
+} else {
+    if (OsHelper.isAccess()) {
+         AccessPeripheral.RFID_ASK_UCM108_GPIO.off(MainActivity.this);
+    } else {
+         ConePeripheral.RFID_ASK_UCM108_GPIO.off(MainActivity.this);
+    }
 }
 ```
 
@@ -88,7 +95,7 @@ PowerManager.get().releaseResources();
 CpcAsk manages the ASK UCM108 RFID reader:
 
 ```groovy
-implementation 'fr.coppernic.sdk.ask:CpcAsk:3.2.3'
+implementation 'fr.coppernic.sdk.ask:CpcAsk:4.0.2'
 ```
 
 #### Create reader object
@@ -118,15 +125,10 @@ public void onDisposed(Reader reader) {
 ```
 
 ### Open reader
-On a C-One, by default baudrate is 115200 bauds:
+On a C-One and Access-ER ASK, by default baudrate is 115200 bauds:
 
 ```groovy
-reader.cscOpen(CpcDefinitions.ASK_READER_PORT, 115200, false);
-```
-CpcDefinitions is part of Coppernic Utility Library, you can add it to your build.gradle:
-
-```groovy
-compile 'fr.coppernic.sdk.cpcutils:CpcUtilsLib:6.17.1'
+reader.cscOpen(ASK_READER_PORT, 115200, false);
 ```
 
 ### Get firmware version to initialize reader for communication
