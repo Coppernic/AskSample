@@ -44,7 +44,7 @@ dependencies {
 
     // Coppernic
     implementation 'fr.coppernic.sdk.ask:CpcAsk:4.0.2'
-    implementation 'fr.coppernic.sdk.core:CpcCore:updateAccessA14'
+    implementation 'fr.coppernic.sdk.core:CpcCore:3.7.0'
 
     // Timber
     implementation 'com.jakewharton.timber:timber:5.0.1'
