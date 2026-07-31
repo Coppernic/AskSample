@@ -10,12 +10,14 @@ buildscript {
     dependencies {
         classpath 'com.android.tools.build:gradle:7.3.1'
         classpath "org.jetbrains.dokka:dokka-gradle-plugin:$dokka_version"
-        classpath "nu.studer:gradle-credentials-plugin:2.1"
+        classpath "nu.studer:gradle-credentials-plugin:2.2"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:2.0.21"
     }
 }
 
 allprojects {
     repositories {
+        mavenLocal()
         mavenCentral()
         maven { url 'https://jitpack.io' }
         maven { url "https://nexus.coppernic.fr/repository/libs-release" }

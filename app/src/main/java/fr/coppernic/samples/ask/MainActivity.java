@@ -1,6 +1,13 @@
 package fr.coppernic.samples.ask;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.hardware.usb.UsbManager;
+import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
@@ -12,12 +19,15 @@ import com.google.android.material.snackbar.Snackbar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.appcompat.widget.Toolbar;
+import androidx.lifecycle.LifecycleOwnerKt;
+
 import fr.coppernic.sdk.ask.Defines;
 import fr.coppernic.sdk.ask.Reader;
 import fr.coppernic.sdk.ask.ReaderListener;
 import fr.coppernic.sdk.ask.RfidTag;
 import fr.coppernic.sdk.ask.SearchParameters;
 import fr.coppernic.sdk.ask.sCARD_SearchExt;
+import fr.coppernic.sdk.power.OutletPowerManager;
 import fr.coppernic.sdk.power.PowerManager;
 import fr.coppernic.sdk.power.api.PowerListener;
 import fr.coppernic.sdk.power.api.peripheral.Peripheral;
@@ -29,12 +39,23 @@ import fr.coppernic.sdk.utils.helpers.OsHelper;
 import fr.coppernic.sdk.utils.io.InstanceListener;
 import fr.coppernic.sdk.utils.sound.Sound;
 import kotlin.Unit;
+import kotlin.coroutines.Continuation;
+import kotlin.coroutines.EmptyCoroutineContext;
+import kotlinx.coroutines.BuildersKt;
+import kotlinx.coroutines.CoroutineStart;
+import kotlinx.coroutines.Dispatchers;
 import timber.log.Timber;
+
 import static fr.coppernic.sdk.core.Defines.SerialDefines.ASK_READER_PORT;
+import static fr.coppernic.sdk.utils.helpers.UsbHelper.ACTION_USB_PERMISSION;
+
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
 public class MainActivity extends AppCompatActivity implements PowerListener, InstanceListener<Reader> {
     // RFID reader
     private Reader reader;
+    private final OutletPowerManager manager = new OutletPowerManager();
     // UI
     SwitchCompat swOpen;
     Button btnFwVersion;
@@ -44,6 +65,24 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
     Button btnGetSamAtr;
     SwitchCompat swPower;
 
+    /**
+     * This received detects a USB device  is available (in case of USB serial ASK module only)
+     * (normal USB or pogo pins) and trigger the USB permission request
+     * Once the USB permission is accepted, the Reader.getInstance is called and bound to the activity
+     */
+    private final BroadcastReceiver usbReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (Objects.equals(intent.getAction(), ACTION_USB_PERMISSION)) {
+                // In case the USB device permission is accepted, the reader is instantiated and bound to activity
+                Reader.getInstance(MainActivity.this, MainActivity.this);
+            } else if (Objects.equals(intent.getAction(), UsbManager.ACTION_USB_DEVICE_ATTACHED)) {
+                // In case of USB device attached, we request the USB permission
+                manager.getUsbPermissions(MainActivity.this);
+            }
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -51,39 +90,61 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        // Views
         swOpen = findViewById(R.id.swOpen);
-        btnFwVersion= findViewById(R.id.btnFwVersion);
+        btnFwVersion = findViewById(R.id.btnFwVersion);
         swCardDetection = findViewById(R.id.swCardDetection);
         tvCommunicationModeValue = findViewById(R.id.tvCommunicationModeValue);
         tvAtrValue = findViewById(R.id.tvAtrValue);
         btnGetSamAtr = findViewById(R.id.btnSamGetAtr);
         swPower = findViewById(R.id.swPower);
 
+        // Actions
         swOpen.setOnCheckedChangeListener(this::onSwOpenCheckedChanged);
-
         btnFwVersion.setOnClickListener(this::onBtnFwVersionClick);
-
-        swCardDetection.setOnCheckedChangeListener(
-            this::onSwCardDetectionCheckedChanged);
-
+        swCardDetection.setOnCheckedChangeListener(this::onSwCardDetectionCheckedChanged);
         btnGetSamAtr.setOnClickListener(this::onBtnSamGetAtrClick);
-
         swPower.setOnCheckedChangeListener(this::onSwPowerCheckedChanged);
-
-        initPowerManagement();
     }
 
-    private void initPowerManagement() {
+    @Override
+    protected void onStart() {
+        super.onStart();
 
+        // Used for GPIO based serial (Access-ER / Cone)
         PowerManager.get().registerListener(this);
+
+        // Used for USB based serial (HMD Fusion / Android devices)
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(ACTION_USB_PERMISSION);
+        filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
+        filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
+        this.registerReceiver(usbReceiver, filter, RECEIVER_EXPORTED);
+    }
+
+    @Override
+    protected void onStop() {
+        try {
+            this.unregisterReceiver(usbReceiver);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        super.onStop();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // Releases PowerManager
+        // Releases PowerManager for GPIO based devices
         PowerManager.get().unregisterAll();
         PowerManager.get().releaseResources();
+
+        // Power off pogo pins for USB based devices (HMD Fusion)
+        try {
+            BuildersKt.runBlocking(EmptyCoroutineContext.INSTANCE, (scope, continuation) -> manager.powerOff(MainActivity.this, 10000L, continuation));
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     // InstanceListener implementation
@@ -107,18 +168,27 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
 
     // End of InstanceListener implementation
     public void onSwPowerCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+        if (OsHelper.isAccess()) {
+            // GPIO based device
             if (isChecked) {
-            if (OsHelper.isAccess()) {
                 AccessPeripheral.RFID_ASK_UCM108_GPIO.on(MainActivity.this);
             } else {
-                ConePeripheral.RFID_ASK_UCM108_GPIO.on(MainActivity.this);
-            }
-
-        } else {
-            if (OsHelper.isAccess()) {
                 AccessPeripheral.RFID_ASK_UCM108_GPIO.off(MainActivity.this);
+            }
+        } else if (OsHelper.isAccess()) {
+            // GPIO based device
+            if (isChecked) {
+                ConePeripheral.RFID_ASK_UCM108_GPIO.on(MainActivity.this);
             } else {
                 ConePeripheral.RFID_ASK_UCM108_GPIO.off(MainActivity.this);
+            }
+        } else {
+            // USB based device with pogo pins (HMD Fusion)
+            try {
+                CompletableFuture<Boolean> future = OutletPowerManagerExtensionKt.powerFuture(manager, this, isChecked);
+                future.thenAccept(result -> Timber.tag("USB").d("result=%s", result));
+            } catch (Exception e) {
+                throw new RuntimeException(e);
             }
         }
     }
@@ -131,26 +201,29 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
     public void onSwOpenCheckedChanged(CompoundButton buttonView, boolean isChecked) {
         if (isChecked) {
             // Opens communication port
-            int res;
+            CompletableFuture.supplyAsync(() -> reader.cscOpen(ASK_READER_PORT, 115200)).thenAccept(openResult ->
+                runOnUiThread(() -> {
+                        int res;
+                        if (openResult == Defines.RCSC_Ok) {
+                            res = reader.cscResetCsc();
+                        } else {
+                            Snackbar.make(buttonView, "Error opening reader", Snackbar.LENGTH_SHORT).show();
+                            return;
+                        }
 
-            res = reader.cscOpen(ASK_READER_PORT, 115200, false);
-
-            if (res == Defines.RCSC_Ok) {
-                res = reader.cscResetCsc();
-            } else {
-                Snackbar.make(buttonView, "Error opening reader", Snackbar.LENGTH_SHORT).show();
-                return;
-            }
-
-            if (res == Defines.RCSC_Ok) {
-                enableUiAfterOpen(true);
-            } else {
-                Snackbar.make(buttonView, "Error resetting reader", Snackbar.LENGTH_SHORT).show();
-            }
+                        if (res == Defines.RCSC_Ok) {
+                            enableUiAfterOpen(true);
+                        } else {
+                            Snackbar.make(buttonView, "Error resetting reader", Snackbar.LENGTH_SHORT).show();
+                        }
+                    }
+                )
+            );
         } else {
-            // CLoses communication port
-            reader.cscClose();
-            enableUiAfterOpen(false);
+            // Closes communication port
+            CompletableFuture
+                    .runAsync(() -> reader.cscClose())
+                    .thenRun(() -> runOnUiThread(() -> enableUiAfterOpen(false)));
         }
     }
 
@@ -158,51 +231,55 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
         // Gets firmware version of the reader
         // And initialize it for communication
         StringBuilder sb = new StringBuilder();
-        int res = reader.cscVersionCsc(sb);
-        if (res == Defines.RCSC_Ok) {
-            Timber.d("Version : \"%s\"", sb);
-            Snackbar.make(v, sb.toString(), Snackbar.LENGTH_SHORT).show();
-            enableUiAfterFullInit(true);
-        }
+        CompletableFuture.supplyAsync(() -> reader.cscVersionCsc(sb)).thenAccept(res ->
+            runOnUiThread(() -> {
+                    if (res == Defines.RCSC_Ok) {
+                        Timber.d("Version : \"%s\"", sb);
+                        Snackbar.make(v, sb.toString(), Snackbar.LENGTH_SHORT).show();
+                        enableUiAfterFullInit(true);
+                    }
+                }
+            )
+        );
     }
 
     private void launchCardDiscovery(final CompoundButton buttonView) {
         // Sets the card detection
-        sCARD_SearchExt search = new sCARD_SearchExt();
-        search.OTH = 1;
-        search.CONT = 0;
-        search.INNO = 1;
-        search.ISOA = 1;
-        search.ISOB = 1;
-        search.MIFARE = 1;
-        search.MONO = 1;
-        search.MV4k = 1;
-        search.MV5k = 1;
-        search.TICK = 1;
-        int mask = Defines.SEARCH_MASK_INNO | Defines.SEARCH_MASK_ISOA | Defines.SEARCH_MASK_ISOB | Defines.SEARCH_MASK_MIFARE | Defines.SEARCH_MASK_MONO | Defines.SEARCH_MASK_MV4K | Defines.SEARCH_MASK_MV5K | Defines.SEARCH_MASK_TICK | Defines.SEARCH_MASK_OTH;
-        SearchParameters parameters = new SearchParameters(search, mask, (byte) 0x01, (byte) 0x00);
-        // Starts card detection
-        reader.startDiscovery(parameters, new ReaderListener() {
-            @Override
-            public void onTagDiscovered(RfidTag rfidTag) {
-                // Displays Tag data
-                showTag(rfidTag);
-            }
+        CompletableFuture.runAsync(() -> {
+            sCARD_SearchExt search = new sCARD_SearchExt();
+            search.OTH = 1;
+            search.CONT = 0;
+            search.INNO = 1;
+            search.ISOA = 1;
+            search.ISOB = 1;
+            search.MIFARE = 1;
+            search.MONO = 1;
+            search.MV4k = 1;
+            search.MV5k = 1;
+            search.TICK = 1;
+            int mask = Defines.SEARCH_MASK_INNO | Defines.SEARCH_MASK_ISOA | Defines.SEARCH_MASK_ISOB | Defines.SEARCH_MASK_MIFARE | Defines.SEARCH_MASK_MONO | Defines.SEARCH_MASK_MV4K | Defines.SEARCH_MASK_MV5K | Defines.SEARCH_MASK_TICK | Defines.SEARCH_MASK_OTH;
+            SearchParameters parameters = new SearchParameters(search, mask, (byte) 0x01, (byte) 0x00);
+            // Starts card detection
+            reader.startDiscovery(parameters, new ReaderListener() {
+                @Override
+                public void onTagDiscovered(RfidTag rfidTag) {
+                    // Displays Tag data
+                    showTag(rfidTag);
+                }
 
-            @Override
-            public void onDiscoveryStopped() {
-                Snackbar.make(buttonView, R.string.card_detection_stopped, Snackbar.LENGTH_SHORT).show();
-                runOnUiThread(() -> {
-                    if (swCardDetection.isChecked()) {
-                        // TODO : check if a delay should be inserted, also verify that application should
-                        //  implement a continuous discovery
-                        launchCardDiscovery(buttonView);
-                    }
-                });
-            }
+                @Override
+                public void onDiscoveryStopped() {
+                    Snackbar.make(buttonView, R.string.card_detection_stopped, Snackbar.LENGTH_SHORT).show();
+                    runOnUiThread(() -> {
+                        if (swCardDetection.isChecked()) {
+                            // TODO : check if a delay should be inserted, also verify that application should
+                            //  implement a continuous discovery
+                            launchCardDiscovery(buttonView);
+                        }
+                    });
+                }
+            });
         });
-
-
     }
 
     public void onSwCardDetectionCheckedChanged(final CompoundButton buttonView, boolean checked) {
@@ -248,6 +325,7 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
 
     /**
      * Displays tag data
+     *
      * @param tag Tag to be displayed
      */
     private void showTag(final RfidTag tag) {
@@ -265,6 +343,7 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
 
     /**
      * Enables/disables UI after power state of RFID reader has been changed.
+     *
      * @param enable true: enables, false: disables
      */
     private void enableUiAfterReaderInstantiation(final boolean enable) {
@@ -280,6 +359,7 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
 
     /**
      * Enables/disables UI after the reader has been opened/closed
+     *
      * @param enable true: enables, false: disables
      */
     private void enableUiAfterOpen(final boolean enable) {
@@ -299,9 +379,10 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
 
     /**
      * Enables/disables UI after the reader has been fully initialized (after firmware version has been retrieved)
+     *
      * @param enable true: enables, false: disables
      */
-    private void enableUiAfterFullInit (final boolean enable) {
+    private void enableUiAfterFullInit(final boolean enable) {
         runOnUiThread(() -> {
             swCardDetection.setEnabled(enable);
             btnGetSamAtr.setEnabled(enable);
@@ -310,6 +391,7 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
 
     /**
      * Returns SAM selected by user
+     *
      * @return SAM number (1 for SAM 1, 2 for SAM 2
      */
     private byte getSam() {
@@ -323,6 +405,7 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
 
     /**
      * Returns protocol selected by user
+     *
      * @return Protocol
      */
     private byte getProtocol() {
@@ -338,7 +421,8 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
 
     /**
      * Displays SAM ATR
-     * @param atr ATR
+     *
+     * @param atr    ATR
      * @param length ATR length
      */
     private void showSamAtr(byte[] atr, int length) {
@@ -349,21 +433,6 @@ public class MainActivity extends AppCompatActivity implements PowerListener, In
         } else {
             tvSamAtrValue.setText(CpcBytes.byteArrayToString(atr, length));
         }
-    }
-
-    @Override
-    public void onPause() {
-
-        super.onPause();
-
-        if (swOpen.isChecked()) {
-            swOpen.setChecked(false);
-        }
-
-        if (swPower.isChecked()) {
-            swPower.setChecked(false);
-        }
-
     }
 
     @Override
