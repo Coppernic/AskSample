@@ -12,6 +12,12 @@ fun OutletPowerManager.powerFuture(
     on: Boolean
 ): CompletableFuture<Boolean> {
     return CoroutineScope(Dispatchers.IO).future {
-        if (on) powerOn(context) else powerOff(context)
+        if (on) {
+            if (!isPowerOn(context)) {
+                powerOn(context)
+            } else true
+        } else {
+            powerOff(context)
+        }
     }
 }
